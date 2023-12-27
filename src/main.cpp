@@ -14,7 +14,7 @@
 #define DEBUGS(s)
 #define DEBUG(s, x)
 #define DEBUGX(s, x)
-#define SERIAL_RATE 31250
+#define SERIAL_RATE 31250   // MIDI RATE
 
 #else // don't use MIDI to allow printing debug statements
 
