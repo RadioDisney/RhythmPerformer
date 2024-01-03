@@ -36,6 +36,8 @@ bool isConnected = false;
 #define DEBUGX(s, x)
 #define SERIAL_RATE 31250   // MIDI RATE
 
+#define SERIAL2_RATE 115200   // 
+
 #else // don't use MIDI to allow printing debug statements
 
 #define DEBUGS(s)     do { Serial.print(s); } while(false)
@@ -133,6 +135,7 @@ void setup(void)
   int  err;
 
   Serial.begin(SERIAL_RATE);
+  Serial2.begin(SERIAL2_RATE, SERIAL_8E1);
 
   DEBUGS("\n[MidiFile Looper]");
 
