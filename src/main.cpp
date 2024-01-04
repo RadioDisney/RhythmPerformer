@@ -12,7 +12,10 @@
 
 #include <hardware/BLEMIDI_Client_ESP32.h>
 
-BLEMIDI_CREATE_DEFAULT_INSTANCE(); //Connect to first server found
+// BLEMIDI_CREATE_DEFAULT_INSTANCE(); //Connect to first server found
+
+BLEMIDI_NAMESPACE::BLEMIDI_Transport<BLEMIDI_NAMESPACE::BLEMIDI_Client_ESP32> BLEMIDI("Performer");
+MIDI_NAMESPACE::MidiInterface<BLEMIDI_NAMESPACE::BLEMIDI_Transport<BLEMIDI_NAMESPACE::BLEMIDI_Client_ESP32>, BLEMIDI_NAMESPACE::MySettings> MIDI((BLEMIDI_NAMESPACE::BLEMIDI_Transport<BLEMIDI_NAMESPACE::BLEMIDI_Client_ESP32> &)BLEMIDI);
 
 //BLEMIDI_CREATE_INSTANCE("",MIDI)                  //Connect to the first server found
 //BLEMIDI_CREATE_INSTANCE("f2:c1:d9:36:e7:6b",MIDI) //Connect to a specific BLE address server
@@ -22,6 +25,7 @@ BLEMIDI_CREATE_DEFAULT_INSTANCE(); //Connect to first server found
 #define LED_BUILTIN 2 //modify for match with yout board
 #endif
 
+void Serial2WriteData(byte* data, int length);
 void ReadCB(void *parameter);       //Continuos Read function (See FreeRTOS multitasks)
 
 unsigned long t0 = millis();
@@ -87,7 +91,6 @@ void midiCallback(midi_event *pev)
 
 void initBLEMIDI()
 {
-  MIDI.begin(MIDI_CHANNEL_OMNI);
 
   BLEMIDI.setHandleConnected([]()
                              {
@@ -134,6 +137,9 @@ void setup(void)
 {
   int  err;
 
+  pinMode(4, OUTPUT);
+  digitalWrite(4, HIGH);
+
   Serial.begin(SERIAL_RATE);
   Serial2.begin(SERIAL2_RATE, SERIAL_8E1);
 
@@ -163,22 +169,51 @@ void setup(void)
   }
 }
 
+byte serial2ReadBuffer[80];
+size_t serial2ReadLenght;
+char deviceAddr[24];
+
+char myBLEAddString[24];
+
 void loop(void)
 {
-  // if (isConnected && (millis() - t0) > 1000)
-  // {
-  //   t0 = millis();
-
-  //   vTaskDelay(250/portTICK_PERIOD_MS);
-  // }
-
   // play the file
   if (!SMF.isEOF())
   {
     SMF.getNextEvent();
   }
+
+  if (Serial2.available())
+  {
+    serial2ReadLenght = Serial2.readBytesUntil('\xF7', serial2ReadBuffer, 80);
+
+    // if (serial2ReadLenght > 0)
+    // {
+    //   digitalWrite(LED_BUILTIN, HIGH);
+    //   Serial2WriteData(serial2ReadBuffer, serial2ReadLenght);
+    // }
+
+    if (serial2ReadBuffer[0] == '\xF0')
+    {
+      digitalWrite(LED_BUILTIN, HIGH);
+      strncpy(deviceAddr, (char *)(serial2ReadBuffer + 1), serial2ReadLenght - 1);
+      BLEMIDI.setName(deviceAddr);
+
+      MIDI.begin(MIDI_CHANNEL_OMNI);
+
+      BLEAddress myBLEAddr = BLEDevice::getAddress();
+      sprintf(myBLEAddString, "\xF0%s\xF7", myBLEAddr.toString().c_str());
+
+      Serial2WriteData((byte*)myBLEAddString, strlen(myBLEAddString));
+    }
+  }
 }
 
+void Serial2WriteData(byte* data, int length)
+{
+  for (int i = 0; i < length; i++)
+      Serial2.write(*(data+i));
+}
 
 /**
  * This function is called by xTaskCreatePinnedToCore() to perform a multitask execution.
