@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../LiquidCrystalHelloWorld"
+		},
+		{
+			"name": "BleMidiController",
+			"path": "../../BleMidiController"
+		},
+		{
+			"name": "RhythmPerformer",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
